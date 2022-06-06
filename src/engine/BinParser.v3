@@ -208,7 +208,7 @@ type BinParserResult {
 // Contains common routines for the module parser and function body parser.
 class WasmParser(extensions: Extension.set, limits: Limits, module: Module,
 	err: ErrorGen, var decoder: DataReader) {
-	def canon = IsoRecCanonicalizer.new(Canon.globalCache);
+	def cache = Canon.globalCache;
 	var eof = false;
 	var init_stack: ArrayStack<(ValueType, InitExpr)>;
 	var max_fw_index = if(module != null, module.heaptypes.length);
@@ -420,7 +420,7 @@ class WasmParser(extensions: Extension.set, limits: Limits, module: Module,
 			return HeapType.ANY;
 		}
 		if (index >= max_fw_index) {
-			return HeapType.FwRef(index);
+			return HeapType.FwRef(index - max_fw_index);
 		}
 		match (module.heaptypes[index]) {
 			x: StructDecl => return HeapType.Struct(x);
@@ -820,7 +820,7 @@ class WasmParser(extensions: Extension.set, limits: Limits, module: Module,
 				readDefType3(true, pt, code, ValueTypes.NO_HEAPTYPES);
 			}
 			if (err.ok()) {
-				canon.doGroup(module.heaptypes, recgrp_start, count);
+				cache.doGroup(module.heaptypes, recgrp_start, count);
 				max_fw_index = max_legal_index = module.heaptypes.length;
 			}
 		} else {
@@ -829,7 +829,7 @@ class WasmParser(extensions: Extension.set, limits: Limits, module: Module,
 			readDefType3(false, pt, code, ValueTypes.NO_HEAPTYPES);
 			if (err.ok()) {
 				var i = module.heaptypes.length - 1;
-				module.heaptypes[i] = canon.doOne(module.heaptypes[i]);
+				module.heaptypes[i] = cache.doOne(module.heaptypes[i]);
 				max_fw_index = max_legal_index = module.heaptypes.length;
 			}
 		}
