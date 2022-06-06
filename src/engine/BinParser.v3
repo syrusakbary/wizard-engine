@@ -415,6 +415,9 @@ class WasmParser(extensions: Extension.set, limits: Limits, module: Module,
 			err.rel(decoder, decoder.pos - 1).InvalidHeapType(index);
 			return HeapType.ANY;
 		}
+		return toHeapType(pt, index);
+	}
+	def toHeapType(pt: int, index: int) -> HeapType {
 		if (index >= max_legal_index) {
 			err.rel(decoder, pt).OobIndex("heap type", u32.view(index), u32.view(max_legal_index));
 			return HeapType.ANY;
@@ -854,7 +857,7 @@ class WasmParser(extensions: Extension.set, limits: Limits, module: Module,
 		for (i < count) {
 			var pt = decoder.pos;
 			var index = readU32("type index", u32.view(module.heaptypes.length));
-			supertypes[i] = HeapType.FwRef(int.!(index));
+			supertypes[i] = toHeapType(pt, int.!(index));
 		}
 		readDefType2(false, supertypes);
 	}

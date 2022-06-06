@@ -30,17 +30,14 @@ def equalSigDecl(a: SigDecl, b: SigDecl) -> bool {
 	return ValueTypes.isEquivalentArray(a.params, b.params) && ValueTypes.isEquivalentArray(a.results, b.results);
 }
 def hashValueType(t: ValueType) -> int {
-	return hashValueType0(t, true);
-}
-def hashValueType0(t: ValueType, structural: bool) -> int {
 	var h = int.view(t.tag);
 	match (t) {
 		Ref(nullable, heap) => {
 			if (nullable) h *= 3;
 			match (heap) {
-				Struct(sdecl) => h += if(structural, hashStructDecl(sdecl), sdecl.recgrp_index);
-				Array(array) => h += if(structural, hashArrayDecl(array), array.recgrp_index);
-				Func(sig) => h += if(sig == null, 42, if(structural, hashSigDecl(sig), sig.recgrp_index));
+				Struct(sdecl) => h += if(sdecl == null, 40, sdecl.recgrp_index);
+				Array(array) => h += if(array == null, 42, array.recgrp_index);
+				Func(sig) => h += if(sig == null, 42, sig.recgrp_index);
 				Rtt(depth, heaptype) => h += depth; // XXX: more hash bits for RTT
 				_ => h += heap.tag;
 			}
@@ -70,7 +67,7 @@ def hashStructDecl(decl: StructDecl) -> int {
 	if (decl.hash != 0) return decl.hash;
 	var h = 1; // XXX: hash supertypes?
 	for (st in decl.field_types) {
-		h = h * 31 + hashValueType0(st.valtype, false) + st.packing.tag + if(st.mutable, 33);
+		h = h * 31 + hashValueType(st.valtype) + st.packing.tag + if(st.mutable, 33);
 	}
 	return decl.hash = h | int.min;
 }
@@ -79,7 +76,7 @@ def hashArrayDecl(decl: ArrayDecl) -> int {
 	if (decl.hash >= 0) return decl.hash;
 	var h = 2; // XXX: hash supertypes?
 	for (st in decl.elem_types) {
-		h = h * 31 + hashValueType0(st.valtype, false) + st.packing.tag + if(st.mutable, 33);
+		h = h * 31 + hashValueType(st.valtype) + st.packing.tag + if(st.mutable, 33);
 	}
 	return decl.hash = h | int.min;
 }
@@ -220,6 +217,7 @@ class RecGroup(length: int) {
 				}
 			}
 			if (d.canon_id < 0 && cache != null) d.canon_id = ++cache.uid;
+			if (Trace.canon) Trace.OUT.put1("%q", d.render).outln();
 		}
 		// cache this recursion group if a cache has been supplied
 		if (cache != null) cache.recGroups[this] = this;
@@ -236,7 +234,7 @@ class RecGroup(length: int) {
 	}
 	private def substHeapType(ht: HeapType) -> HeapType {
 		match (ht) {
-			FwRef(index) => match (decls[index]) {
+			FwRef(index) => match (done[index]) {
 				x: StructDecl => return HeapType.Struct(x);
 				x: ArrayDecl => return HeapType.Array(x);
 				x: SigDecl => return HeapType.Func(x);
