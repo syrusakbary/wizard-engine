@@ -722,6 +722,39 @@ component V3Interpreter {
 							push(Value.Ref(HeapArray.new(rtt, vals)));
 						}
 					}
+					Opcode.ARRAY_NEW_DATA.code => {
+						var index = codeptr.read_uleb32();
+						var dindex = codeptr.read_uleb32();
+						var i = frame.func.instance;
+						if (!i.dropped_data[dindex]) {
+							var rtt = popRtt();
+							var len = popu();
+							var offset = popu();
+							var ddecl = i.module.data[int.!(dindex)];
+							if (len <= Execute.limits.max_array_length) {
+								var t = Execute.bytesToVals(ArrayDecl.!(i.heaptypes[int.!(index)]).elem_types[0], ddecl.data, offset, len);
+								if (t.0) push(Value.Ref(HeapArray.new(rtt, t.1)));
+								else trap(TrapReason.MEM_OUT_OF_BOUNDS);
+							} else {
+								trap(TrapReason.OOM);
+							}
+						} else {
+							trap(TrapReason.MEM_OUT_OF_BOUNDS);
+						}
+					}
+					Opcode.ARRAY_NEW_ELEM.code => {
+						var index = codeptr.read_uleb32();
+						var eindex = codeptr.read_uleb32();
+						var i = frame.func.instance;
+						if (!i.dropped_elems[eindex]) {
+							var rtt = popRtt();
+							var len = popu();
+							var offset = popu();
+							var edecl = i.module.elems[int.!(eindex)];
+						} else {
+							trap(TrapReason.MEM_OUT_OF_BOUNDS);
+						}
+					}
 					Opcode.I31_NEW.code => {
 						push(Value.I31(u31.view(popu())));
 					}
