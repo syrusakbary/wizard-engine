@@ -751,6 +751,15 @@ component V3Interpreter {
 							var len = popu();
 							var offset = popu();
 							var edecl = i.module.elems[int.!(eindex)];
+							if (len <= Execute.limits.max_array_length) {
+								var vals = Array<Value>.new(int.!(len));
+								var r = Execute.copyElemsInto(vals, i, 0, edecl, offset, len);
+								if (r) push(Value.Ref(HeapArray.new(rtt, vals)));
+								else trap(TrapReason.TABLE_OUT_OF_BOUNDS); // TODO: elem out of bounds
+							} else {
+								trap(TrapReason.OOM);
+							}
+							
 						} else {
 							trap(TrapReason.MEM_OUT_OF_BOUNDS);
 						}

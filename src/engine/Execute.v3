@@ -338,7 +338,7 @@ component Execute {
 		}
 		return (d.ok, vals);
 	}
-	def sizeOfStorage(storage: StorageType) -> u64 {
+	def sizeOfStorage(storage: StorageType) -> u32 {
 		match (storage.packing) {
 			UNPACKED => {
 				match (storage.valtype) {
@@ -350,6 +350,21 @@ component Execute {
 			}
 			PACKED_I8 => return 1;
 			PACKED_I16 => return 2;
+		}
+	}
+	def copyElemsInto(dest: Array<Value>, instance: Instance, dst_offset: u32, elem: ElemDecl, src_offset: u32, size: u32) -> bool {
+		if (elem == null) {
+			if (ArrayUtil.boundsCheck(dest, dst_offset, 0, size) < 0) return false;
+			if (ArrayUtil.boundsCheck<byte>(null, src_offset, 0, size) < 0) return false;
+			return true;
+		}
+		match (elem.details) {
+			FuncRefs(vals) => {
+				return ArrayUtil.safeCopyF(dest, dst_offset, vals, src_offset, size, instance.getFunctionAsVal);
+			}
+			Exprs(vals) => {
+				return ArrayUtil.safeCopyF(dest, dst_offset, vals, src_offset, size, instance.evalInitExpr);
+			}
 		}
 	}
 }
