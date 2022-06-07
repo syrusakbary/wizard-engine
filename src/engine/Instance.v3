@@ -83,6 +83,11 @@ class Instance(module: Module, imports: Array<Exportable>) {
 				// TODO: initialize elements correctly
 				return Value.Ref(HeapArray.new(vrtt, Array.new(vlen)));
 			}
+			FixedArray(t, vals, rtt) => {
+				var vrtt = RttObject.!(Value.Ref.!(evalInitExpr(rtt)).val);
+				var vvals = Arrays.map(vals, evalInitExpr);
+				return Value.Ref(HeapArray.new(vrtt, vvals));
+			}
 			Struct(t, vals, rtt) => {
 				var vvals = Arrays.map(vals, evalInitExpr);
 				var vrtt = RttObject.!(Value.Ref.!(evalInitExpr(rtt)).val);

@@ -711,14 +711,14 @@ component V3Interpreter {
 					}
 					Opcode.ARRAY_NEW_FIXED.code => {
 						var index = codeptr.read_uleb32();
-						var len = codeptr.read_uleb32();
+						var len = codeptr.read_u32();
 						var rtt = popRtt();
 						if (len > Execute.limits.max_array_length) {
 							trap(TrapReason.OOM);
 						} else {
 							var length = int.view(len);
 							var vals = Array<Value>.new(length);
-							for (i < vals.length) vals[i] = pop();
+							for (i = vals.length - 1; i >= 0; i--) vals[i] = pop();
 							push(Value.Ref(HeapArray.new(rtt, vals)));
 						}
 					}
