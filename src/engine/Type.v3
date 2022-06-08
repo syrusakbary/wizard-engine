@@ -10,7 +10,6 @@ type ValueType {
 	case F32;						// 32-bit float
 	case F64;						// 64-bit float
 	case V128;						// 128-bit vector
-	case ANYREF_NULL;					// used internally
 	case Abstract(it: AbsTypeDecl);				// imported abstract types
 	case Host(host: HostType);				// host-defined types
 	case Ref(nullable: bool, heap: HeapType);
@@ -97,7 +96,6 @@ component ValueTypes {
 				else buf.puts("<null>");
 				return buf.puts(")");
 			}
-			ANYREF_NULL => s = "externref null";
 			Ref(nullable, heap) => return renderHeapType(buf, seen, nullable, heap);
 		}
 		return buf.puts(s);
@@ -275,24 +273,18 @@ class TypeComparator {
 	def compare(from: ValueType, to: ValueType) -> TypeEquiv {
 		if (from == to) return TypeEquiv.EQUAL;
 		match (from) {
-			ANYREF_NULL => match (to) {
-				Ref(nullable, heap) => match (heap) {
-					EXTERN, ANY => return if(nullable, TypeEquiv.SUB, TypeEquiv.UNRELATED);
-					_ => return TypeEquiv.UNRELATED;
-				}
-				Abstract(tabs) => {
-					if (tabs.is_externref && tabs.has_default) return TypeEquiv.SUB;
-					return TypeEquiv.UNRELATED;
-				}
-				_ => ;
-			}
 			Abstract(fabs) => match (to) {
 				Abstract(tabs) => {
 					if (fabs.isAssignableTo(to)) return TypeEquiv.SUB;
 					if (tabs.isAssignableTo(from)) return TypeEquiv.SUPER;
 					return TypeEquiv.UNRELATED;
 				}
-				ANYREF_NULL => if (fabs.is_externref && fabs.has_default) return TypeEquiv.SUPER;
+				Ref(tnullable, theap) => {
+					if (theap == HeapType.NONE && fabs.is_externref) {
+						if (fabs.has_default || !tnullable) return TypeEquiv.SUPER;
+					}
+					return TypeEquiv.UNRELATED;
+				}
 				_ => if (fabs.isAssignableTo(to)) return TypeEquiv.SUB;
 			}
 			Host(fhost) => match (to) {
@@ -304,13 +296,15 @@ class TypeComparator {
 				_ => return if(fhost != null && fhost.isAssignableTo(to), TypeEquiv.SUB, TypeEquiv.UNRELATED);
 			}
 			Ref(fnullable, fheap) => match (to) {
+				Abstract(tabs) => {
+					if (fheap == HeapType.NONE && tabs.is_externref) {
+						if (tabs.has_default || !fnullable) return TypeEquiv.SUB;
+					}
+					return TypeEquiv.UNRELATED;
+				}
 				Ref(tnullable, theap) => {
 					var eq = compareNullable(fnullable, tnullable);
 					return combineEq(eq, compareHeapTypes(fheap, theap));
-				}
-				ANYREF_NULL => {
-					if (fnullable && (fheap == HeapType.EXTERN || fheap == HeapType.ANY)) return TypeEquiv.SUPER;
-					else return TypeEquiv.UNRELATED;
 				}
 				_ => ;
 			}
