@@ -294,8 +294,14 @@ class SinglePassCompiler(masm: MacroAssembler, extensions: Extension.set, limits
 			Opcode.I64_GE_S.code => emitBinopNoFold(Opcode.I64_GE_S, isAlwaysFalse);
 			Opcode.I64_GE_U.code => emitBinopNoFold(Opcode.I64_GE_U, isAlwaysFalse);
 			Opcode.END.code => {
-				if (codeptr.pos == codeptr.limit) emitReturn();
-				else ; // TODO: pop control
+//				checkArgsAndTransfer();
+				var ctl = ctl_stack.pop();
+				if (ctl.start_opcode == Opcode.LOOP.code) {
+					// nothing to do
+				} else {
+					masm.bindLabel(ctl.label);
+					if (ctl_stack.empty()) emitReturn();
+				}
 			}
 			Opcode.RETURN.code => emitReturn();
 			_ => unsupported();
