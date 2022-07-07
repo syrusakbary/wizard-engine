@@ -91,5 +91,11 @@ class MacroAssembler(valuerep: Tagging, regSet: RegSet, regConfig: RegConfig) {
 	def emit_ret();
 	def emit_nop();
 
+	def emit_br(label: MasmLabel);
+	def emit_br_r_z(reg: Reg, label: MasmLabel);
+	def emit_br_m_z(addr: MasmAddr, label: MasmLabel);
+	def emit_br_r_nz(reg: Reg, label: MasmLabel);
+	def emit_br_m_nz(addr: MasmAddr, label: MasmLabel);
+
 	def fatalUnimplemented();
 }
